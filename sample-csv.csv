@@ -20,3 +20,4 @@ withdrawal, 5, 13, 1.0
 dispute, 5, 13
 chargeback, 5, 13
 deposit, 6, 14, 0.01
+dispute, 6, 14
