@@ -1,7 +1,11 @@
+## Assumptions:
+You have Go 1.17+ installed on your computer.
+
 ## Running the program
-1. cd into this program's directory
-2. Run `go mod download` to install dependencies (if you want to run unit tests).
-3. Run `go run main.go inputfile.csv > outputfile.csv`
+1. Clone the repo
+2. cd into this program's directory
+3. Run `go mod download` to install dependencies (if you want to run unit tests).
+4. Run `go run main.go inputfile.csv > outputfile.csv`
 
 ## Testing
 To run unit tests, use the command: `go test`. I also created a sample CSV file that I used to test with as well called `sample-csv.csv`.
