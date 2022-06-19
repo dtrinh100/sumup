@@ -113,19 +113,12 @@ func processWithdrawal(amount float64, client *Client) {
 
 // OutputTransactionsData outputs transactions data to a CSV
 func OutputTransactionsData(clientMap map[int]*Client) {
-	file, err := os.Create("output.csv")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	defer file.Close()
-
-	w := csv.NewWriter(file)
+	w := csv.NewWriter(os.Stdout)
 	defer w.Flush()
 
 	row := []string{"client", "available", "held", "total", "locked"}
 
-	err = w.Write(row)
+	err := w.Write(row)
 
 	if err != nil {
 		log.Fatal(err)
