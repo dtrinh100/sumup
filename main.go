@@ -12,8 +12,16 @@ import (
 type TransactionData struct {
 	TransactionType string
 	ClientId        int
-	Id              int
+	TransactionId   int
 	Amount          float64
+}
+
+type Transaction struct {
+	Id              int
+	ClientID        int
+	TransactionType string
+	Amount          float64
+	isDisputed      bool
 }
 
 type Client struct {
@@ -33,6 +41,7 @@ func main() {
 	defer f.Close()
 
 	csvReader := csv.NewReader(f)
+	csvReader.FieldsPerRecord = -1
 
 	// Skip first row
 	if _, err := csvReader.Read(); err != nil {
@@ -47,6 +56,9 @@ func main() {
 	// Map used to store client data based on the client's ID
 	clientMap := make(map[int]*Client)
 
+	// Map used to store individual transaction data based on the transaction's ID
+	transactionMap := make(map[int]*Transaction)
+
 	// Process the data and converts each row into a Transction struct for easier processing
 	for _, row := range rows {
 		clientId, err := strconv.Atoi(strings.TrimSpace(row[1]))
@@ -55,33 +67,36 @@ func main() {
 			log.Fatal(err)
 		}
 
-		id, err := strconv.Atoi(strings.TrimSpace(row[2]))
+		transactionId, err := strconv.Atoi(strings.TrimSpace(row[2]))
 
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		amount, err := strconv.ParseFloat(strings.TrimSpace(row[3]), 64)
+		amount := 0.0
+		if len(row) > 3 {
+			amount, err = strconv.ParseFloat(strings.TrimSpace(row[3]), 64)
 
-		if err != nil {
-			log.Fatal(err)
+			if err != nil {
+				log.Fatal(err)
+			}
 		}
 
 		transaction := TransactionData{
 			TransactionType: row[0],
 			ClientId:        clientId,
-			Id:              id,
+			TransactionId:   transactionId,
 			Amount:          amount,
 		}
 
-		ProcessTransaction(transaction, clientMap)
+		ProcessTransaction(transaction, clientMap, transactionMap)
 	}
 
 	OutputTransactionsData(clientMap)
 }
 
-// ProcessTransaction processes a transaction
-func ProcessTransaction(data TransactionData, clientMap map[int]*Client) {
+// ProcessTransaction processes a transaction. Records all deposit and withdraw transactions.
+func ProcessTransaction(data TransactionData, clientMap map[int]*Client, transactionMap map[int]*Transaction) {
 	// Check the client map to see if id exists, if not create a new client
 	if _, ok := clientMap[data.ClientId]; !ok {
 		client := &Client{Id: data.ClientId}
@@ -91,23 +106,47 @@ func ProcessTransaction(data TransactionData, clientMap map[int]*Client) {
 	switch data.TransactionType {
 	case "deposit":
 		processDeposit(data.Amount, clientMap[data.ClientId])
+		transactionMap[data.TransactionId] = &Transaction{Id: data.TransactionId, ClientID: data.ClientId, TransactionType: data.TransactionType, Amount: data.Amount, isDisputed: false}
 	case "withdrawal":
-		processWithdrawal(data.Amount, clientMap[data.ClientId])
+		isSuccessFul := processWithdrawal(data.Amount, clientMap[data.ClientId])
+		if isSuccessFul {
+			transactionMap[data.TransactionId] = &Transaction{Id: data.TransactionId, ClientID: data.ClientId, TransactionType: data.TransactionType, Amount: data.Amount, isDisputed: false}
+		}
+	case "dispute":
+		processDispute(data.TransactionId, transactionMap, clientMap[data.ClientId])
 	}
 }
 
 // processDeposit is a helper function that adds the transaction amount to the overall client's current total and available funds.
 func processDeposit(amount float64, client *Client) {
-	client.Available += amount
-	client.Total += amount
+	if amount >= 0 {
+		client.Available += amount
+		client.Total += amount
+	}
 }
 
 // processWithdrawal is a helper function that subtracts the transaction amount from the overall client's current total and available funds
-// if the amount is lower than the available funds, otherwise it returns without doing anything
-func processWithdrawal(amount float64, client *Client) {
-	if amount < client.Available {
+// if the amount is lower than the available funds and returns true, otherwise it returns false without doing anything
+func processWithdrawal(amount float64, client *Client) bool {
+	isSuccessFul := false
+	if client.Available >= amount && amount >= 0 {
 		client.Available -= amount
 		client.Total -= amount
+		isSuccessFul = true
+	}
+
+	return isSuccessFul
+}
+
+// processDispute is a helper function that subtracts available funds from the amount disputed. Held funds increases
+// by the amount disputed. Total funds does not change. If the transaction id does not exist within the system
+// then simply ignore it.
+func processDispute(transactionId int, transactionMap map[int]*Transaction, client *Client) {
+	// Make sure the transaction exists AND the transaction actually belongs to the client
+	if transaction, ok := transactionMap[transactionId]; ok && client.Id == transaction.ClientID {
+		client.Available -= transaction.Amount
+		client.Held += transaction.Amount
+		transaction.isDisputed = true
 	}
 }
 
