@@ -21,7 +21,7 @@ type Transaction struct {
 	ClientID        int
 	TransactionType string
 	Amount          float64
-	isDisputed      bool
+	IsDisputed      bool
 }
 
 type Client struct {
@@ -106,11 +106,11 @@ func ProcessTransaction(data TransactionData, clientMap map[int]*Client, transac
 	switch data.TransactionType {
 	case "deposit":
 		processDeposit(data.Amount, clientMap[data.ClientId])
-		transactionMap[data.TransactionId] = &Transaction{Id: data.TransactionId, ClientID: data.ClientId, TransactionType: data.TransactionType, Amount: data.Amount, isDisputed: false}
+		transactionMap[data.TransactionId] = &Transaction{Id: data.TransactionId, ClientID: data.ClientId, TransactionType: data.TransactionType, Amount: data.Amount, IsDisputed: false}
 	case "withdrawal":
 		isSuccessFul := processWithdrawal(data.Amount, clientMap[data.ClientId])
 		if isSuccessFul {
-			transactionMap[data.TransactionId] = &Transaction{Id: data.TransactionId, ClientID: data.ClientId, TransactionType: data.TransactionType, Amount: data.Amount, isDisputed: false}
+			transactionMap[data.TransactionId] = &Transaction{Id: data.TransactionId, ClientID: data.ClientId, TransactionType: data.TransactionType, Amount: data.Amount, IsDisputed: false}
 		}
 	case "dispute":
 		processDispute(data.TransactionId, transactionMap, clientMap[data.ClientId])
@@ -124,7 +124,7 @@ func ProcessTransaction(data TransactionData, clientMap map[int]*Client, transac
 
 // processDeposit is a helper function that adds the transaction amount to the overall client's current total and available funds.
 func processDeposit(amount float64, client *Client) {
-	if amount > 0 && !client.IsLocked {
+	if amount > 0 {
 		client.Available += amount
 		client.Total += amount
 	}
@@ -151,7 +151,7 @@ func processDispute(transactionId int, transactionMap map[int]*Transaction, clie
 	if transaction, ok := transactionMap[transactionId]; ok && client.Id == transaction.ClientID {
 		client.Available -= transaction.Amount
 		client.Held += transaction.Amount
-		transaction.isDisputed = true
+		transaction.IsDisputed = true
 	}
 }
 
@@ -160,10 +160,10 @@ func processDispute(transactionId int, transactionMap map[int]*Transaction, clie
 // then simply ignore it.
 func processResolve(transactionId int, transactionMap map[int]*Transaction, client *Client) {
 	// Make sure the transaction exists, actually belongs to the client, and it has been disputed
-	if transaction, ok := transactionMap[transactionId]; ok && client.Id == transaction.ClientID && transaction.isDisputed {
+	if transaction, ok := transactionMap[transactionId]; ok && client.Id == transaction.ClientID && transaction.IsDisputed {
 		client.Held -= transaction.Amount
 		client.Available += transaction.Amount
-		transaction.isDisputed = false
+		transaction.IsDisputed = false
 	}
 }
 
@@ -172,7 +172,7 @@ func processResolve(transactionId int, transactionMap map[int]*Transaction, clie
 // within the system then simply ignore it.
 func processChargeback(transactionId int, transactionMap map[int]*Transaction, client *Client) {
 	// Make sure the transaction exists, actually belongs to the client, and it has been disputed
-	if transaction, ok := transactionMap[transactionId]; ok && client.Id == transaction.ClientID && transaction.isDisputed {
+	if transaction, ok := transactionMap[transactionId]; ok && client.Id == transaction.ClientID && transaction.IsDisputed {
 		client.Held -= transaction.Amount
 		client.Total -= transaction.Amount
 		client.IsLocked = true
