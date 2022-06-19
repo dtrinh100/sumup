@@ -10,3 +10,13 @@ dispute, 1, 1
 dispute, 1, 2
 dispute, 2, 5
 withdrawal, 3, 8, 1.0
+resolve, 2, 5
+deposit, 4, 9, 1.323
+deposit, 4, 10, 2.434
+withdrawal, 4, 11, 1.324
+chargeback, 1, 1
+deposit, 5, 12, 1.0
+withdrawal, 5, 13, 1.0
+dispute, 5, 13
+chargeback, 5, 13
+deposit, 6, 14, 0.01

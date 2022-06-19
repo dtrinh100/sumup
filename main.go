@@ -114,12 +114,17 @@ func ProcessTransaction(data TransactionData, clientMap map[int]*Client, transac
 		}
 	case "dispute":
 		processDispute(data.TransactionId, transactionMap, clientMap[data.ClientId])
+	case "resolve":
+		processResolve(data.TransactionId, transactionMap, clientMap[data.ClientId])
+	case "chargeback":
+		processChargeback(data.TransactionId, transactionMap, clientMap[data.ClientId])
 	}
+
 }
 
 // processDeposit is a helper function that adds the transaction amount to the overall client's current total and available funds.
 func processDeposit(amount float64, client *Client) {
-	if amount >= 0 {
+	if amount > 0 && !client.IsLocked {
 		client.Available += amount
 		client.Total += amount
 	}
@@ -129,7 +134,7 @@ func processDeposit(amount float64, client *Client) {
 // if the amount is lower than the available funds and returns true, otherwise it returns false without doing anything
 func processWithdrawal(amount float64, client *Client) bool {
 	isSuccessFul := false
-	if client.Available >= amount && amount >= 0 {
+	if client.Available >= amount && amount > 0 {
 		client.Available -= amount
 		client.Total -= amount
 		isSuccessFul = true
@@ -147,6 +152,30 @@ func processDispute(transactionId int, transactionMap map[int]*Transaction, clie
 		client.Available -= transaction.Amount
 		client.Held += transaction.Amount
 		transaction.isDisputed = true
+	}
+}
+
+// processResolve is a helper function that subtracts held funds from the amount previously disputed. Available funds increases
+// by the amount previously disputed. Total funds does not change. If the transaction id does not exist within the system
+// then simply ignore it.
+func processResolve(transactionId int, transactionMap map[int]*Transaction, client *Client) {
+	// Make sure the transaction exists, actually belongs to the client, and it has been disputed
+	if transaction, ok := transactionMap[transactionId]; ok && client.Id == transaction.ClientID && transaction.isDisputed {
+		client.Held -= transaction.Amount
+		client.Available += transaction.Amount
+		transaction.isDisputed = false
+	}
+}
+
+// processChargeback is a helper function that subtracts held funds from the amount previously disputed. Total funds decreases
+// by the amount previously disputed. Any chargeback will lock the account. If the transaction id does not exist
+// within the system then simply ignore it.
+func processChargeback(transactionId int, transactionMap map[int]*Transaction, client *Client) {
+	// Make sure the transaction exists, actually belongs to the client, and it has been disputed
+	if transaction, ok := transactionMap[transactionId]; ok && client.Id == transaction.ClientID && transaction.isDisputed {
+		client.Held -= transaction.Amount
+		client.Total -= transaction.Amount
+		client.IsLocked = true
 	}
 }
 
