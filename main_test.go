@@ -8,16 +8,18 @@ import (
 
 func TestProcessDepositInvalidInputs(t *testing.T) {
 	mockClient := &Client{Total: 10.0, Available: 10.0, Held: 0.0, IsLocked: false}
-	processDeposit(-10.0, mockClient)
+	isSuccessful := processDeposit(-10.0, mockClient)
 	assert.Equal(t, 10.0, mockClient.Available, "Negative amount values should not change client data")
 	assert.Equal(t, 10.0, mockClient.Total, "Negative amount values should not change client data")
+	assert.False(t, isSuccessful, "Deposit should not be successful if the amount is negative")
 }
 
 func TestProcessDeposit(t *testing.T) {
 	mockClient := &Client{Total: 10.0, Available: 10.0, Held: 0.0, IsLocked: false}
-	processDeposit(1.1235, mockClient)
+	isSuccessful := processDeposit(1.1235, mockClient)
 	assert.Equal(t, 11.1235, mockClient.Available, "Deposits should increase the available funds")
 	assert.Equal(t, 11.1235, mockClient.Total, "Deposits should increase the total funds")
+	assert.True(t, isSuccessful, "Deposit should be successful")
 }
 
 func TestProcessWithdrawalInvalidInputs(t *testing.T) {

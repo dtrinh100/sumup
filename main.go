@@ -105,11 +105,13 @@ func ProcessTransaction(data TransactionData, clientMap map[int]*Client, transac
 
 	switch data.TransactionType {
 	case "deposit":
-		processDeposit(data.Amount, clientMap[data.ClientId])
-		transactionMap[data.TransactionId] = &Transaction{Id: data.TransactionId, ClientID: data.ClientId, TransactionType: data.TransactionType, Amount: data.Amount, IsDisputed: false}
+		isSuccessful := processDeposit(data.Amount, clientMap[data.ClientId])
+		if isSuccessful {
+			transactionMap[data.TransactionId] = &Transaction{Id: data.TransactionId, ClientID: data.ClientId, TransactionType: data.TransactionType, Amount: data.Amount, IsDisputed: false}
+		}
 	case "withdrawal":
-		isSuccessFul := processWithdrawal(data.Amount, clientMap[data.ClientId])
-		if isSuccessFul {
+		isSuccessful := processWithdrawal(data.Amount, clientMap[data.ClientId])
+		if isSuccessful {
 			transactionMap[data.TransactionId] = &Transaction{Id: data.TransactionId, ClientID: data.ClientId, TransactionType: data.TransactionType, Amount: data.Amount, IsDisputed: false}
 		}
 	case "dispute":
@@ -123,24 +125,28 @@ func ProcessTransaction(data TransactionData, clientMap map[int]*Client, transac
 }
 
 // processDeposit is a helper function that adds the transaction amount to the overall client's current total and available funds.
-func processDeposit(amount float64, client *Client) {
+func processDeposit(amount float64, client *Client) bool {
+	isSuccessful := false
 	if amount > 0 {
 		client.Available += amount
 		client.Total += amount
+		isSuccessful = true
 	}
+
+	return isSuccessful
 }
 
 // processWithdrawal is a helper function that subtracts the transaction amount from the overall client's current total and available funds
 // if the amount is lower than the available funds and returns true, otherwise it returns false without doing anything
 func processWithdrawal(amount float64, client *Client) bool {
-	isSuccessFul := false
+	isSuccessful := false
 	if client.Available >= amount && amount > 0 {
 		client.Available -= amount
 		client.Total -= amount
-		isSuccessFul = true
+		isSuccessful = true
 	}
 
-	return isSuccessFul
+	return isSuccessful
 }
 
 // processDispute is a helper function that subtracts available funds from the amount disputed. Held funds increases
