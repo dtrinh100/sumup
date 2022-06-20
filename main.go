@@ -103,7 +103,8 @@ func ProcessTransaction(data TransactionData, clientMap map[int]*Client, transac
 		clientMap[data.ClientId] = client
 	}
 
-	switch data.TransactionType {
+	transactionTypeLC := strings.ToLower(data.TransactionType)
+	switch transactionTypeLC {
 	case "deposit":
 		isSuccessful := processDeposit(data.Amount, clientMap[data.ClientId])
 		if isSuccessful {
